@@ -31,7 +31,6 @@ private struct PinUITextField:UIViewRepresentable{
             let replacementLength = string.count
             let rangeLength = range.length
             let newLength = oldLength - rangeLength + replacementLength
-                        
             return newLength <= numberOfDigits
         }
     }
@@ -68,7 +67,6 @@ private struct PinUITextField:UIViewRepresentable{
 }
 
 public struct PinEntryView<Content>:View  where Content: View  {
-    
     private class ViewData:ObservableObject{
         var numberOfDigits:Int
         @Published var text:String = ""
@@ -81,7 +79,7 @@ public struct PinEntryView<Content>:View  where Content: View  {
         init(numberOfDigits:Int = 6) {
             self.numberOfDigits = numberOfDigits
             
-           $text
+            $text
                 .map { [unowned self] in $0.count == self.numberOfDigits }
                 .receive(on: DispatchQueue.main)
                 .assign(to: \ViewData.completed, on: self)
@@ -97,19 +95,16 @@ public struct PinEntryView<Content>:View  where Content: View  {
         
         func items() -> [String?]{
             return text.enumerated().reduce(into: Array(repeating: nil, count: numberOfDigits)) { (result, el) in
-                       result[el.offset] = String(el.element)
-                   }
+                result[el.offset] = String(el.element)
+            }
         }
-        
     }
     
     @ObservedObject private var data = ViewData()
     @Binding var isFirstResponder:Bool
-    var spacing:CGFloat = 10
-    
-    let content: (_ text:String?,  _ selected:Bool, _ enabled:Bool) -> Content
-    
-    
+    private var spacing:CGFloat = 10
+    private let content: (_ text:String?,  _ selected:Bool, _ enabled:Bool) -> Content
+        
     public init(numberOfDigits:Int,
                 spacing:CGFloat = 10, isFirstResponder:Binding<Bool>,
                 onComplete: ((String) -> Void)? = nil,
