@@ -50,11 +50,12 @@ private struct PinUITextField:UIViewRepresentable{
         textField.textContentType = .oneTimeCode
         textField.isHidden = true
         textField.delegate = context.coordinator
+        textField.text = text
+
         return textField
     }
 
     func updateUIView(_ uiView: UITextField, context: Context) {
-        uiView.text = text
         if isFirstResponder && !context.coordinator.didBecomeFirstResponder  {
             uiView.becomeFirstResponder()
             context.coordinator.didBecomeFirstResponder = true
@@ -116,7 +117,7 @@ public struct PinEntryView<Content>:View  where Content: View  {
         self.data.numberOfDigits = numberOfDigits
         self.data.onComplete = onComplete
     }
-    
+       
     public var body: some View {
         let items = self.data.items()
                  
