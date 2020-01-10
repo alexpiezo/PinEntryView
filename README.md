@@ -1,3 +1,3 @@
 # PinEntryView
 
-A description of this package.
+![Preview](images/preview.gif?raw=true "Preview")
