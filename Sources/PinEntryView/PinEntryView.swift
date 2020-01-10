@@ -85,15 +85,17 @@ private extension String{
 public struct PinEntryView<Content>:View  where Content: View  {
     @Binding var isFirstResponder:Bool
     @State var numberOfDigits:Int = 6
-    @State var text:String = ""
+    @Binding var text:String
     private var spacing:CGFloat = 10
     private let content: (_ text:String?,  _ selected:Bool, _ enabled:Bool) -> Content
     private var onComplete:((String) -> Void)?
     
-    public init(numberOfDigits:Int,
+    public init(text:Binding<String>,
+                numberOfDigits:Int,
                 spacing:CGFloat = 10, isFirstResponder:Binding<Bool>,
                 onComplete: ((String) -> Void)? = nil,
                 @ViewBuilder content: @escaping (_ text:String?, _ selected:Bool, _ enabled:Bool) -> Content) {
+        _text = text
         _isFirstResponder = isFirstResponder
         self.content = content
         self.spacing = spacing

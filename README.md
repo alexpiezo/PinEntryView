@@ -10,10 +10,11 @@ import PinEntryView
 
 struct ContentView: View {
     @State var isFirstResponder:Bool = false
+    @State var pinText = ""
     
     var body: some View {
         VStack{            
-            PinEntryView(numberOfDigits: 6, spacing: 10, isFirstResponder: $isFirstResponder, onComplete: { (code) in
+            PinEntryView(text: $pinText, numberOfDigits: 6, spacing: 10, isFirstResponder: $isFirstResponder, onComplete: { (code) in
                 self.isFirstResponder = false
             }) { (string, selected, enabled) in
                 
