@@ -1,5 +1,4 @@
 import SwiftUI
-import Combine
 
 private struct PinUITextField:UIViewRepresentable{
     private class CUITextField: UITextField {
@@ -15,15 +14,21 @@ private struct PinUITextField:UIViewRepresentable{
         @Binding var numberOfDigits:Int
         
         var didBecomeFirstResponder = false
+        var onComplete:((String) -> Void)?
+
         
-        init(text: Binding<String>, numberOfDigits:Binding<Int>) {
+        init(text: Binding<String>, numberOfDigits:Binding<Int>, onComplete:((String) -> Void)?) {
             _text = text
             _numberOfDigits = numberOfDigits
+            self.onComplete = onComplete
         }
 
         func textFieldDidChangeSelection(_ textField: UITextField) {
             text = textField.text ?? ""
             didBecomeFirstResponder = textField.isFirstResponder
+            if numberOfDigits == text.count{
+                self.onComplete?(text)
+            }
         }
                 
         func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
@@ -38,8 +43,11 @@ private struct PinUITextField:UIViewRepresentable{
     @Binding var text: String
     @Binding var numberOfDigits: Int
     @Binding var isFirstResponder: Bool
-
-    func makeCoordinator() -> Coordinator { Coordinator(text: $text, numberOfDigits: $numberOfDigits) }
+    var onComplete:((String) -> Void)?
+    
+    func makeCoordinator() -> Coordinator {
+        return Coordinator(text: $text, numberOfDigits: $numberOfDigits, onComplete: onComplete)
+    }
     
     func makeUIView(context: Context) -> UITextField {
         let textField = CUITextField(frame: .zero)
@@ -50,7 +58,6 @@ private struct PinUITextField:UIViewRepresentable{
         textField.textContentType = .oneTimeCode
         textField.isHidden = true
         textField.delegate = context.coordinator
-        textField.text = text
 
         return textField
     }
@@ -67,68 +74,44 @@ private struct PinUITextField:UIViewRepresentable{
     }
 }
 
-public struct PinEntryView<Content>:View  where Content: View  {
-    private class ViewData:ObservableObject{
-        var numberOfDigits:Int
-        @Published var text:String = ""
-        @Published var completed:Bool = false
-        
-        private var cancelableSet = Set<AnyCancellable>()
-       
-        var onComplete:((String) -> Void)?
-        
-        init(numberOfDigits:Int = 6) {
-            self.numberOfDigits = numberOfDigits
-            
-            $text
-                .map { [unowned self] in $0.count == self.numberOfDigits }
-                .receive(on: DispatchQueue.main)
-                .assign(to: \ViewData.completed, on: self)
-                .store(in: &cancelableSet)
-            
-            $completed
-                .sink(receiveValue: { [unowned self] (completed) in
-                    if completed{
-                        self.onComplete?(self.text)
-                    }
-                }).store(in: &cancelableSet)
-        }
-        
-        func items() -> [String?]{
-            return text.enumerated().reduce(into: Array(repeating: nil, count: numberOfDigits)) { (result, el) in
-                result[el.offset] = String(el.element)
-            }
+private extension String{
+    func items(for numberOfDigits:Int) -> [String?]{
+        return self.enumerated().reduce(into: Array(repeating: nil, count: numberOfDigits)) { (result, el) in
+            result[el.offset] = String(el.element)
         }
     }
-    
-    @ObservedObject private var data = ViewData()
+}
+
+public struct PinEntryView<Content>:View  where Content: View  {
     @Binding var isFirstResponder:Bool
+    @State var numberOfDigits:Int = 6
+    @State var text:String = ""
     private var spacing:CGFloat = 10
     private let content: (_ text:String?,  _ selected:Bool, _ enabled:Bool) -> Content
-        
+    private var onComplete:((String) -> Void)?
+    
     public init(numberOfDigits:Int,
                 spacing:CGFloat = 10, isFirstResponder:Binding<Bool>,
                 onComplete: ((String) -> Void)? = nil,
                 @ViewBuilder content: @escaping (_ text:String?, _ selected:Bool, _ enabled:Bool) -> Content) {
         _isFirstResponder = isFirstResponder
-        
         self.content = content
         self.spacing = spacing
-        self.data.numberOfDigits = numberOfDigits
-        self.data.onComplete = onComplete
+        self.numberOfDigits = numberOfDigits
+        self.onComplete = onComplete
     }
        
     public var body: some View {
-        let items = self.data.items()
+        let items = self.text.items(for: numberOfDigits)
                  
         return ZStack{
-            PinUITextField( text:$data.text, numberOfDigits: $data.numberOfDigits, isFirstResponder: $isFirstResponder)
+            PinUITextField(text:$text, numberOfDigits: $numberOfDigits, isFirstResponder: $isFirstResponder, onComplete: onComplete)
             HStack(spacing:spacing){
                 ForEach(0..<items.count, id: \.self){ i in
                     Button(action: {
                         self.isFirstResponder = true
                     }) {
-                        self.content(items[i], self.data.text.count == i, false)
+                        self.content(items[i], self.text.count == i, false)
                     }
                     
                 }
